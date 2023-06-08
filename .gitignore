@@ -1,0 +1,6 @@
+*.tar.gz
+
+# the fetched tools
+ripgrep/
+fd/
+fzf/

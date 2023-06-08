@@ -1,0 +1,7 @@
+#%Module5.0
+
+set hpc_tools_home "[getenv HOME]/hpc_tools"
+
+prepend-path PATH  "$hpc_tools_home/fd"
+prepend-path PATH  "$hpc_tools_home/ripgrep"
+prepend-path PATH  "$hpc_tools_home/fzf"

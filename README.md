@@ -22,6 +22,11 @@ environment module.
 You need to edit variable `hpc_tools_home` therein to `/path/to/hpc_tools`
 if the path is not `$HOME/hpc_tools`.
 
+## TODO
+
+- [ ] htop
+- [ ] modern git
+
 ## [License](./LICENSE)
 
 The MIT License (MIT).

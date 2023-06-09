@@ -1,4 +1,4 @@
-Useful tools but maybe missing on HPC platform.
+Tools very useful but maybe missing on HPC platform.
 
 - [ripgrep](https://github.com/BurntSushi/ripgrep)
 - [fd-find](https://github.com/sharkdp/fd)
@@ -13,7 +13,7 @@ Clone this repository to `/path/to/hpc_tools`, run
 
 ```shell
 cd ~/hpc_tools
-./fetch_tarball.sh
+./install.sh
 ```
 
 Or run it locally and upload to `/path/to/hpc_tools` at the server.

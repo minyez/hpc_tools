@@ -3,6 +3,9 @@
 WGET_CMD="wget -nv --show-progress --progress=bar:force"
 
 fetch_ripgrep() {
+  if which rg > /dev/null 2>&1; then
+    echo "system ripgrep detected" && return
+  fi
   if [[ -d ripgrep ]]; then
     echo "ripgrep already fetched" && return
   fi
@@ -17,6 +20,9 @@ fetch_ripgrep() {
 }
 
 fetch_fd() {
+  if which fd > /dev/null 2>&1; then
+    echo "system fd detected" && return
+  fi
   if [[ -d fd ]]; then
     echo "fd already fetched" && return
   fi
@@ -31,6 +37,9 @@ fetch_fd() {
 }
 
 fetch_fzf() {
+  if which fzf > /dev/null 2>&1; then
+    echo "system fzf detected" && return
+  fi
   if [[ -d fzf ]]; then
     echo "fzf already fetched" && return
   fi
@@ -43,6 +52,9 @@ fetch_fzf() {
   tar -C fzf -zxf "$fzftgz"
 }
 
+# fetch released binaries
 fetch_ripgrep
 fetch_fd
 fetch_fzf
+
+# fetch source and compile

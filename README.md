@@ -3,6 +3,7 @@ Tools very useful but maybe missing on HPC platform.
 - [ripgrep](https://github.com/BurntSushi/ripgrep)
 - [fd-find](https://github.com/sharkdp/fd)
 - [fzf](https://github.com/junegunn/fzf)
+- [direnv](https://direnv.net)
 
 ## Usage
 

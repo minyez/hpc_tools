@@ -12,7 +12,7 @@ fetch_ripgrep() {
   ripgrepver="13.0.0"
   ripgrepdir="ripgrep-$ripgrepver-x86_64-unknown-linux-musl"
   ripgreptgz="$ripgrepdir.tar.gz"
-  ripgrepurl="https://github.com/BurntSushi/ripgrep/releases/download/13.0.0/$ripgreptgz"
+  ripgrepurl="https://github.com/BurntSushi/ripgrep/releases/download/$ripgrepver/$ripgreptgz"
 
   [[ -f "$ripgreptgz" ]] || $WGET_CMD "$ripgrepurl"
   tar -zxf "$ripgreptgz"
@@ -52,9 +52,29 @@ fetch_fzf() {
   tar -C fzf -zxf "$fzftgz"
 }
 
+fetch_direnv() {
+  # if which direnv > /dev/null 2>&1; then
+  #   echo "system direnv detected" && return
+  # fi
+  if [[ -d direnv ]]; then
+    echo "direnv already fetched" && return
+  fi
+  direnvver="v2.33.0"
+  direnvexe="direnv.linux-amd64"
+  direnvurl="https://github.com/direnv/direnv/releases/download/$direnvver/$direnvexe"
+  echo "getting $direnvurl"
+  [[ -f "$direnvexe" ]] || $WGET_CMD "$direnvurl"
+  if [[ ! -f "$direnvexe" ]]; then
+    echo "Failed to download $direnvexe ($direnvurl)"
+    return 1
+  fi
+  mkdir -p direnv && mv $direnvexe direnv/direnv && chmod +x direnv/direnv
+}
+
 # fetch released binaries
 fetch_ripgrep
 fetch_fd
 fetch_fzf
+fetch_direnv
 
 # fetch source and compile

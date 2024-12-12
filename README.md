@@ -4,6 +4,7 @@ Tools very useful but maybe missing on HPC platform.
 - [fd-find](https://github.com/sharkdp/fd)
 - [fzf](https://github.com/junegunn/fzf)
 - [direnv](https://direnv.net)
+- [tig](https://jonas.github.io/tig)
 
 ## Usage
 
@@ -14,7 +15,7 @@ Clone this repository to `/path/to/hpc_tools`, run
 
 ```shell
 cd ~/hpc_tools
-./install.sh
+bash install.sh
 ```
 
 Or run it locally and upload to `/path/to/hpc_tools` at the server.

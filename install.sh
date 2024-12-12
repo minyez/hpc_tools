@@ -71,6 +71,28 @@ fetch_direnv() {
   mkdir -p direnv && mv $direnvexe direnv/direnv && chmod +x direnv/direnv
 }
 
+fetch_compile_tig() {
+  if [[ -d tig ]]; then
+    echo "tig already fetched" && return
+  fi
+  tigver="2.5.10"
+  tigtarball="tig-$tigver.tar.gz"
+  tigurl="https://github.com/jonas/tig/releases/download/tig-$tigver/$tigtarball"
+  echo "getting $tigurl"
+  [[ -f "$tigtarball" ]] || $WGET_CMD "$tigurl"
+  if [[ ! -f "$tigtarball" ]]; then
+    echo "Failed to download $tigtarball ($tigurl)"
+    return 1
+  fi
+  # Install
+  if [[ ! -d "tig" ]]; then
+    tar -zxf $tigtarball
+    prefix="$(pwd)/tig"
+    cd "tig-$tigver" || return 2
+    make prefix="$prefix" && make install prefix="$prefix" && cd .. && rm -rf "tig-$tigver"
+  fi
+}
+
 # fetch released binaries
 fetch_ripgrep
 fetch_fd
@@ -78,3 +100,4 @@ fetch_fzf
 fetch_direnv
 
 # fetch source and compile
+fetch_compile_tig

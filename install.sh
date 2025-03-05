@@ -93,6 +93,7 @@ fetch_compile_tig() {
   fi
 }
 
+# See: https://valgrind.org/docs/manual/dist.readme.html
 fetch_compile_valgrind() {
   if [[ -d valgrind ]]; then
     echo "valgrind already fetched" && return

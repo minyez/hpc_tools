@@ -5,6 +5,7 @@ Tools very useful but maybe missing on HPC platform.
 - [fzf](https://github.com/junegunn/fzf)
 - [direnv](https://direnv.net)
 - [tig](https://jonas.github.io/tig)
+- [valgrind](https://valgrind.org)
 
 ## Usage
 
@@ -21,8 +22,8 @@ bash install.sh
 Or run it locally and upload to `/path/to/hpc_tools` at the server.
 Then copy the modulefile (`modulefile`) to somewhere handled by
 environment module.
-You need to edit variable `hpc_tools_home` therein to `/path/to/hpc_tools`
-if the path is not `$HOME/hpc_tools`.
+Remember to adapt the variable `hpc_tools_home` therein
+if the path `/path/to/hpc_tools` is not `$HOME/hpc_tools`.
 
 ## TODO
 

@@ -73,7 +73,7 @@ fetch_direnv() {
 
 fetch_compile_tig() {
   if [[ -d tig ]]; then
-    echo "tig already fetched" && return
+    echo "tig already compiled" && return
   fi
   tigver="2.5.10"
   tigtarball="tig-$tigver.tar.gz"
@@ -84,12 +84,32 @@ fetch_compile_tig() {
     echo "Failed to download $tigtarball ($tigurl)"
     return 1
   fi
+  [[ ! -d "tig-$tigver" ]] || tar -zxf $tigtarball
   # Install
   if [[ ! -d "tig" ]]; then
-    tar -zxf $tigtarball
     prefix="$(pwd)/tig"
     cd "tig-$tigver" || return 2
     make prefix="$prefix" && make install prefix="$prefix" && cd .. && rm -rf "tig-$tigver"
+  fi
+}
+
+fetch_compile_valgrind() {
+  if [[ -d valgrind ]]; then
+    echo "valgrind already fetched" && return
+  fi
+  vver="3.24.0"
+  vtarball="valgrind-$vver.tar.bz2"
+  vurl="https://sourceware.org/pub/valgrind/$vtarball"
+  [[ -f "$vtarball" ]] || $WGET_CMD "$vurl"
+  if [[ ! -f "$vtarball" ]]; then
+    echo "Failed to download $vtarball ($vurl)"
+    return 1
+  fi
+  [[ ! -d "valgrind-$vver" ]] || tar -jxf $vtarball
+  if [[ ! -d "valgrind" ]]; then
+    prefix="$(pwd)/valgrind"
+    cd "valgrind-$tigver" || return 2
+    make prefix="$prefix" && make install prefix="$prefix" && cd .. && rm -rf "valgrind-$tigver"
   fi
 }
 
@@ -101,3 +121,4 @@ fetch_direnv
 
 # fetch source and compile
 fetch_compile_tig
+fetch_compile_valgrind

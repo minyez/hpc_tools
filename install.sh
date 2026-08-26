@@ -77,25 +77,27 @@ fetch_direnv() {
 }
 
 fetch_compile_tig() {
-  if [[ -d tig ]]; then
+  if [[ -x tig/bin/tig ]]; then
     echo "tig already compiled" && return
   fi
-  tigver="2.5.10"
-  tigtarball="tig-$tigver.tar.gz"
-  tigurl="https://github.com/jonas/tig/releases/download/tig-$tigver/$tigtarball"
-  echo "getting $tigurl"
-  [[ -f "$tigtarball" ]] || $WGET_CMD "$tigurl"
-  if [[ ! -f "$tigtarball" ]]; then
-    echo "Failed to download $tigtarball ($tigurl)"
-    return 1
-  fi
-  [[ ! -d "tig-$tigver" ]] || tar -zxf $tigtarball
-  # Install
-  if [[ ! -d "tig" ]]; then
-    prefix="$(pwd)/tig"
-    cd "tig-$tigver" || return 2
-    make prefix="$prefix" && make install prefix="$prefix" && cd .. && rm -rf "tig-$tigver"
-  fi
+
+  local version="2.5.10"
+  local srcdir="tig-$version"
+  local tarball="$srcdir.tar.gz"
+  local url="https://github.com/jonas/tig/releases/download/tig-$version/$tarball"
+  local sha256="f655cc1366fc10058a2bd505bb88ca78e653ff7526c1b81774c44b9d841210e3"
+  local prefix="$PWD/tig"
+
+  [[ -f "$tarball" ]] || $WGET_CMD "$url" || return
+  verify_sha256 "$tarball" "$sha256" || return
+  [[ -d "$srcdir" ]] || tar -zxf "$tarball" || return
+
+  (
+    cd "$srcdir" || exit
+    ./configure --prefix="$prefix" &&
+      make -j"$JOBS" &&
+      make install
+  )
 }
 
 # See: https://valgrind.org/docs/manual/dist.readme.html
@@ -111,11 +113,11 @@ fetch_compile_valgrind() {
     echo "Failed to download $vtarball ($vurl)"
     return 1
   fi
-  [[ ! -d "valgrind-$vver" ]] || tar -jxf $vtarball
+  [[ -d "valgrind-$vver" ]] || tar -jxf "$vtarball"
   if [[ ! -d "valgrind" ]]; then
     prefix="$(pwd)/valgrind"
-    cd "valgrind-$tigver" || return 2
-    make prefix="$prefix" && make install prefix="$prefix" && cd .. && rm -rf "valgrind-$tigver"
+    cd "valgrind-$vver" || return 2
+    make prefix="$prefix" && make install prefix="$prefix" && cd .. && rm -rf "valgrind-$vver"
   fi
 }
 
@@ -237,9 +239,10 @@ install_git_stack() {
 
 case "${1:-tools}" in
   tools) install_tools ;;
+  tig) fetch_compile_tig ;;
   openssl | libssl) fetch_compile_openssl ;;
   curl | libcurl) fetch_compile_openssl && fetch_compile_curl ;;
   git) install_git_stack ;;
-  all) install_tools && install_git_stack ;;
-  *) echo "Usage: $0 [tools|openssl|curl|git|all]" >&2; exit 2 ;;
+  all) install_tools && install_git_stack && fetch_compile_tig ;;
+  *) echo "Usage: $0 [tools|tig|openssl|curl|git|all]" >&2; exit 2 ;;
 esac

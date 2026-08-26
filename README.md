@@ -39,8 +39,9 @@ export PATH="$PWD/git/bin:$PWD/curl/bin:$PWD/openssl/bin:$PATH"
 ```
 
 This builds OpenSSL 3.5.8 LTS, curl 8.21.0, and Git 2.54.0 in that order.
-`openssl`, `curl`, `libssl`, and `libcurl` are also accepted as individual
-targets; their prerequisites are built automatically.
+`tig`, `openssl`, `curl`, `libssl`, and `libcurl` are also accepted as
+individual targets. Dependencies in the Git stack are built automatically;
+building Tig requires the ncurses development headers.
 
 ## TODO
 

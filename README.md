@@ -43,6 +43,13 @@ This builds OpenSSL 3.5.8 LTS, curl 8.21.0, and Git 2.54.0 in that order.
 individual targets. Dependencies in the Git stack are built automatically;
 building Tig requires the ncurses development headers.
 
+To download and verify the remote archives without extracting or compiling
+them, place `--fetch-only` before the target. For example,
+
+```shell
+bash install.sh --fetch-only git
+```
+
 ## TODO
 
 - [ ] htop

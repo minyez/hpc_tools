@@ -2,16 +2,22 @@
 
 WGET_CMD="wget -nv --show-progress --progress=bar:force"
 JOBS="${JOBS:-4}"
+FETCH_ONLY=0
+
+if [[ "${1:-}" == "--fetch-only" ]]; then
+  FETCH_ONLY=1
+  shift
+fi
 
 verify_sha256() {
   printf '%s  %s\n' "$2" "$1" | sha256sum -c -
 }
 
 fetch_ripgrep() {
-  if which rg >/dev/null 2>&1; then
+  if (( ! FETCH_ONLY )) && which rg >/dev/null 2>&1; then
     echo "system ripgrep detected" && return
   fi
-  if [[ -d ripgrep ]]; then
+  if (( ! FETCH_ONLY )) && [[ -d ripgrep ]]; then
     echo "ripgrep already fetched" && return
   fi
   ripgrepver="15.1.0"
@@ -19,16 +25,17 @@ fetch_ripgrep() {
   ripgreptgz="$ripgrepdir.tar.gz"
   ripgrepurl="https://github.com/BurntSushi/ripgrep/releases/download/$ripgrepver/$ripgreptgz"
 
-  [[ -f "$ripgreptgz" ]] || $WGET_CMD "$ripgrepurl"
+  [[ -f "$ripgreptgz" ]] || $WGET_CMD "$ripgrepurl" || return
+  (( FETCH_ONLY )) && return
   tar -zxf "$ripgreptgz"
   mv "$ripgrepdir" ripgrep
 }
 
 fetch_fd() {
-  if which fd >/dev/null 2>&1; then
+  if (( ! FETCH_ONLY )) && which fd >/dev/null 2>&1; then
     echo "system fd detected" && return
   fi
-  if [[ -d fd ]]; then
+  if (( ! FETCH_ONLY )) && [[ -d fd ]]; then
     echo "fd already fetched" && return
   fi
   fdver="v10.4.2"
@@ -36,23 +43,25 @@ fetch_fd() {
   fdtgz="$fddir.tar.gz"
   fdurl="https://github.com/sharkdp/fd/releases/download/$fdver/$fdtgz"
 
-  [[ -f "$fdtgz" ]] || $WGET_CMD "$fdurl"
+  [[ -f "$fdtgz" ]] || $WGET_CMD "$fdurl" || return
+  (( FETCH_ONLY )) && return
   tar -zxf "$fdtgz"
   mv "$fddir" fd
 }
 
 fetch_fzf() {
-  if which fzf >/dev/null 2>&1; then
+  if (( ! FETCH_ONLY )) && which fzf >/dev/null 2>&1; then
     echo "system fzf detected" && return
   fi
-  if [[ -d fzf ]]; then
+  if (( ! FETCH_ONLY )) && [[ -d fzf ]]; then
     echo "fzf already fetched" && return
   fi
   fzfver="0.41.1"
   fzfdir="fzf-$fzfver-linux_amd64"
   fzftgz="$fzfdir.tar.gz"
   fzfurl="https://github.com/junegunn/fzf/releases/download/$fzfver/$fzftgz"
-  [[ -f "$fzftgz" ]] || $WGET_CMD "$fzfurl"
+  [[ -f "$fzftgz" ]] || $WGET_CMD "$fzfurl" || return
+  (( FETCH_ONLY )) && return
   mkdir -p fzf
   tar -C fzf -zxf "$fzftgz"
 }
@@ -61,7 +70,7 @@ fetch_direnv() {
   # if which direnv > /dev/null 2>&1; then
   #   echo "system direnv detected" && return
   # fi
-  if [[ -d direnv ]]; then
+  if (( ! FETCH_ONLY )) && [[ -d direnv ]]; then
     echo "direnv already fetched" && return
   fi
   direnvver="v2.37.1"
@@ -73,11 +82,12 @@ fetch_direnv() {
     echo "Failed to download $direnvexe ($direnvurl)"
     return 1
   fi
+  (( FETCH_ONLY )) && return
   mkdir -p direnv && mv $direnvexe direnv/direnv && chmod +x direnv/direnv
 }
 
 fetch_compile_tig() {
-  if [[ -x tig/bin/tig ]]; then
+  if (( ! FETCH_ONLY )) && [[ -x tig/bin/tig ]]; then
     echo "tig already compiled" && return
   fi
 
@@ -90,6 +100,7 @@ fetch_compile_tig() {
 
   [[ -f "$tarball" ]] || $WGET_CMD "$url" || return
   verify_sha256 "$tarball" "$sha256" || return
+  (( FETCH_ONLY )) && return
   [[ -d "$srcdir" ]] || tar -zxf "$tarball" || return
 
   (
@@ -102,7 +113,7 @@ fetch_compile_tig() {
 
 # See: https://valgrind.org/docs/manual/dist.readme.html
 fetch_compile_valgrind() {
-  if [[ -d valgrind ]]; then
+  if (( ! FETCH_ONLY )) && [[ -d valgrind ]]; then
     echo "valgrind already fetched" && return
   fi
   vver="3.24.0"
@@ -113,6 +124,7 @@ fetch_compile_valgrind() {
     echo "Failed to download $vtarball ($vurl)"
     return 1
   fi
+  (( FETCH_ONLY )) && return
   [[ -d "valgrind-$vver" ]] || tar -jxf "$vtarball"
   if [[ ! -d "valgrind" ]]; then
     prefix="$(pwd)/valgrind"
@@ -122,7 +134,7 @@ fetch_compile_valgrind() {
 }
 
 fetch_compile_openssl() {
-  if [[ -x openssl/bin/openssl ]]; then
+  if (( ! FETCH_ONLY )) && [[ -x openssl/bin/openssl ]]; then
     echo "OpenSSL already compiled" && return
   fi
 
@@ -135,6 +147,7 @@ fetch_compile_openssl() {
 
   [[ -f "$tarball" ]] || $WGET_CMD "$url" || return
   verify_sha256 "$tarball" "$sha256" || return
+  (( FETCH_ONLY )) && return
   [[ -d "$srcdir" ]] || tar -zxf "$tarball" || return
 
   (
@@ -148,13 +161,15 @@ fetch_compile_openssl() {
 }
 
 fetch_compile_curl() {
-  if [[ -x curl/bin/curl ]]; then
+  if (( ! FETCH_ONLY )) && [[ -x curl/bin/curl ]]; then
     echo "curl already compiled" && return
   fi
-  [[ -x openssl/bin/openssl ]] || {
-    echo "OpenSSL must be installed first" >&2
-    return 1
-  }
+  if (( ! FETCH_ONLY )); then
+    [[ -x openssl/bin/openssl ]] || {
+      echo "OpenSSL must be installed first" >&2
+      return 1
+    }
+  fi
 
   local version="8.21.0"
   local srcdir="curl-$version"
@@ -166,6 +181,7 @@ fetch_compile_curl() {
 
   [[ -f "$tarball" ]] || $WGET_CMD "$url" || return
   verify_sha256 "$tarball" "$sha256" || return
+  (( FETCH_ONLY )) && return
   [[ -d "$srcdir" ]] || tar -zxf "$tarball" || return
 
   (
@@ -186,13 +202,15 @@ fetch_compile_curl() {
 }
 
 fetch_compile_git() {
-  if [[ -x git/bin/git ]]; then
+  if (( ! FETCH_ONLY )) && [[ -x git/bin/git ]]; then
     echo "Git already compiled" && return
   fi
-  [[ -x openssl/bin/openssl && -x curl/bin/curl ]] || {
-    echo "OpenSSL and curl must be installed first" >&2
-    return 1
-  }
+  if (( ! FETCH_ONLY )); then
+    [[ -x openssl/bin/openssl && -x curl/bin/curl ]] || {
+      echo "OpenSSL and curl must be installed first" >&2
+      return 1
+    }
+  fi
 
   local version="2.54.0"
   local srcdir="git-$version"
@@ -205,6 +223,7 @@ fetch_compile_git() {
 
   [[ -f "$tarball" ]] || $WGET_CMD -O "$tarball" "$url" || return
   verify_sha256 "$tarball" "$sha256" || return
+  (( FETCH_ONLY )) && return
   [[ -d "$srcdir" ]] || tar -zxf "$tarball" || return
 
   (
@@ -244,5 +263,5 @@ case "${1:-tools}" in
   curl | libcurl) fetch_compile_openssl && fetch_compile_curl ;;
   git) install_git_stack ;;
   all) install_tools && install_git_stack && fetch_compile_tig ;;
-  *) echo "Usage: $0 [tools|tig|openssl|curl|git|all]" >&2; exit 2 ;;
+  *) echo "Usage: $0 [--fetch-only] [tools|tig|openssl|curl|git|all]" >&2; exit 2 ;;
 esac

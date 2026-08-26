@@ -6,3 +6,6 @@ fd/
 fzf/
 direnv/
 tig*/
+openssl*/
+curl*/
+git*/

@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 
 WGET_CMD="wget -nv --show-progress --progress=bar:force"
+JOBS="${JOBS:-4}"
+
+verify_sha256() {
+  printf '%s  %s\n' "$2" "$1" | sha256sum -c -
+}
 
 fetch_ripgrep() {
-  if which rg > /dev/null 2>&1; then
+  if which rg >/dev/null 2>&1; then
     echo "system ripgrep detected" && return
   fi
   if [[ -d ripgrep ]]; then
@@ -20,7 +25,7 @@ fetch_ripgrep() {
 }
 
 fetch_fd() {
-  if which fd > /dev/null 2>&1; then
+  if which fd >/dev/null 2>&1; then
     echo "system fd detected" && return
   fi
   if [[ -d fd ]]; then
@@ -37,7 +42,7 @@ fetch_fd() {
 }
 
 fetch_fzf() {
-  if which fzf > /dev/null 2>&1; then
+  if which fzf >/dev/null 2>&1; then
     echo "system fzf detected" && return
   fi
   if [[ -d fzf ]]; then
@@ -114,12 +119,127 @@ fetch_compile_valgrind() {
   fi
 }
 
-# fetch released binaries
-fetch_ripgrep
-fetch_fd
-fetch_fzf
-fetch_direnv
+fetch_compile_openssl() {
+  if [[ -x openssl/bin/openssl ]]; then
+    echo "OpenSSL already compiled" && return
+  fi
 
-# fetch source and compile
-fetch_compile_tig
-fetch_compile_valgrind
+  local version="3.5.8"
+  local srcdir="openssl-$version"
+  local tarball="$srcdir.tar.gz"
+  local url="https://github.com/openssl/openssl/releases/download/openssl-$version/$tarball"
+  local sha256="a8f84a39918ec6415ce765d9b429d313ba97b8143169c172e734b9514464f5b2"
+  local prefix="$PWD/openssl"
+
+  [[ -f "$tarball" ]] || $WGET_CMD "$url" || return
+  verify_sha256 "$tarball" "$sha256" || return
+  [[ -d "$srcdir" ]] || tar -zxf "$tarball" || return
+
+  (
+    cd "$srcdir" || exit
+    unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH PKG_CONFIG_PATH
+    LDFLAGS="${LDFLAGS:+$LDFLAGS }-Wl,-rpath,$prefix/lib" \
+      ./config --prefix="$prefix" --openssldir="$prefix/ssl" --libdir=lib shared &&
+      make -j"$JOBS" &&
+      make install_sw
+  )
+}
+
+fetch_compile_curl() {
+  if [[ -x curl/bin/curl ]]; then
+    echo "curl already compiled" && return
+  fi
+  [[ -x openssl/bin/openssl ]] || {
+    echo "OpenSSL must be installed first" >&2
+    return 1
+  }
+
+  local version="8.21.0"
+  local srcdir="curl-$version"
+  local tarball="$srcdir.tar.gz"
+  local url="https://curl.se/download/$tarball"
+  local sha256="d9b327997999045a24cda50f3983e69e51c516bd8be6ef9842fc7f99135e33bb"
+  local prefix="$PWD/curl"
+  local openssl_prefix="$PWD/openssl"
+
+  [[ -f "$tarball" ]] || $WGET_CMD "$url" || return
+  verify_sha256 "$tarball" "$sha256" || return
+  [[ -d "$srcdir" ]] || tar -zxf "$tarball" || return
+
+  (
+    cd "$srcdir" || exit
+    unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH
+    export CPPFLAGS="-I$openssl_prefix/include"
+    export LDFLAGS="-L$openssl_prefix/lib -Wl,-rpath,$openssl_prefix/lib -Wl,-rpath,$prefix/lib"
+    export PKG_CONFIG_PATH="$openssl_prefix/lib/pkgconfig"
+    ./configure \
+      --prefix="$prefix" \
+      --disable-static \
+      --with-openssl="$openssl_prefix" \
+      --with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt \
+      --without-libpsl &&
+      make -j"$JOBS" &&
+      make install
+  )
+}
+
+fetch_compile_git() {
+  if [[ -x git/bin/git ]]; then
+    echo "Git already compiled" && return
+  fi
+  [[ -x openssl/bin/openssl && -x curl/bin/curl ]] || {
+    echo "OpenSSL and curl must be installed first" >&2
+    return 1
+  }
+
+  local version="2.54.0"
+  local srcdir="git-$version"
+  local tarball="$srcdir.tar.gz"
+  local url="https://github.com/git/git/archive/refs/tags/v$version.tar.gz"
+  local sha256="7b01a23c44c9ccfca2e3ad9daf8cbdd4d4caaaa6b5181e77e16e60c6ae5f772a"
+  local prefix="$PWD/git"
+  local openssl_prefix="$PWD/openssl"
+  local curl_prefix="$PWD/curl"
+
+  [[ -f "$tarball" ]] || $WGET_CMD -O "$tarball" "$url" || return
+  verify_sha256 "$tarball" "$sha256" || return
+  [[ -d "$srcdir" ]] || tar -zxf "$tarball" || return
+
+  (
+    cd "$srcdir" || exit
+    unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH PKG_CONFIG_PATH
+    export PATH="$openssl_prefix/bin:$curl_prefix/bin:$PATH"
+    make clean &&
+      make -j"$JOBS" \
+        prefix="$prefix" \
+        OPENSSLDIR="$openssl_prefix" \
+        CURLDIR="$curl_prefix" \
+        CURL_CONFIG="$curl_prefix/bin/curl-config" \
+        CC_LD_DYNPATH='-Wl,-rpath,' \
+        all &&
+      make \
+        prefix="$prefix" \
+        OPENSSLDIR="$openssl_prefix" \
+        CURLDIR="$curl_prefix" \
+        CURL_CONFIG="$curl_prefix/bin/curl-config" \
+        CC_LD_DYNPATH='-Wl,-rpath,' \
+        install
+  )
+}
+
+install_tools() {
+  fetch_ripgrep && fetch_fd && fetch_fzf && fetch_direnv
+}
+
+install_git_stack() {
+  fetch_compile_openssl && fetch_compile_curl && fetch_compile_git
+}
+
+case "${1:-tools}" in
+  tools) install_tools ;;
+  openssl | libssl) fetch_compile_openssl ;;
+  curl | libcurl) fetch_compile_openssl && fetch_compile_curl ;;
+  git) install_git_stack ;;
+  all) install_tools && install_git_stack ;;
+  *) echo "Usage: $0 [tools|openssl|curl|git|all]" >&2; exit 2 ;;
+esac

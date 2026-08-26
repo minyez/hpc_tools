@@ -230,12 +230,21 @@ fetch_compile_git() {
     cd "$srcdir" || exit
     unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH PKG_CONFIG_PATH
     export PATH="$openssl_prefix/bin:$curl_prefix/bin:$PATH"
+    csprng_method=
+    if printf '%s\n' '#include <sys/random.h>' \
+      'int main(void) { return getrandom(0, 0, 0) < 0; }' | \
+      "${CC:-cc}" -D_GNU_SOURCE -x c -o /dev/null - >/dev/null 2>&1; then
+      csprng_method=getrandom
+    else
+      echo "getrandom unavailable; Git will use /dev/urandom"
+    fi
     make clean &&
       make -j"$JOBS" \
         prefix="$prefix" \
         OPENSSLDIR="$openssl_prefix" \
         CURLDIR="$curl_prefix" \
         CURL_CONFIG="$curl_prefix/bin/curl-config" \
+        CSPRNG_METHOD="$csprng_method" \
         CC_LD_DYNPATH='-Wl,-rpath,' \
         all &&
       make \
@@ -243,6 +252,7 @@ fetch_compile_git() {
         OPENSSLDIR="$openssl_prefix" \
         CURLDIR="$curl_prefix" \
         CURL_CONFIG="$curl_prefix/bin/curl-config" \
+        CSPRNG_METHOD="$csprng_method" \
         CC_LD_DYNPATH='-Wl,-rpath,' \
         install
   )

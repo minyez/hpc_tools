@@ -9,7 +9,7 @@ fetch_ripgrep() {
   if [[ -d ripgrep ]]; then
     echo "ripgrep already fetched" && return
   fi
-  ripgrepver="13.0.0"
+  ripgrepver="15.1.0"
   ripgrepdir="ripgrep-$ripgrepver-x86_64-unknown-linux-musl"
   ripgreptgz="$ripgrepdir.tar.gz"
   ripgrepurl="https://github.com/BurntSushi/ripgrep/releases/download/$ripgrepver/$ripgreptgz"
@@ -26,7 +26,7 @@ fetch_fd() {
   if [[ -d fd ]]; then
     echo "fd already fetched" && return
   fi
-  fdver="v8.7.0"
+  fdver="v10.4.2"
   fddir="fd-$fdver-x86_64-unknown-linux-musl"
   fdtgz="$fddir.tar.gz"
   fdurl="https://github.com/sharkdp/fd/releases/download/$fdver/$fdtgz"
@@ -59,7 +59,7 @@ fetch_direnv() {
   if [[ -d direnv ]]; then
     echo "direnv already fetched" && return
   fi
-  direnvver="v2.33.0"
+  direnvver="v2.37.1"
   direnvexe="direnv.linux-amd64"
   direnvurl="https://github.com/direnv/direnv/releases/download/$direnvver/$direnvexe"
   echo "getting $direnvurl"

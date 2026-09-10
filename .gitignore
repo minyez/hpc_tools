@@ -1,11 +1,14 @@
 *.tar.gz
+*.tar.xz
 
 # the fetched tools
+btop/
 ripgrep/
 fd/
 fzf/
 direnv/
 tig*/
+htop*/
 openssl*/
 curl*/
 git*/

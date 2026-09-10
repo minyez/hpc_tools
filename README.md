@@ -4,11 +4,11 @@ Tools very useful but maybe missing on HPC platform.
 - [fd-find](https://github.com/sharkdp/fd)
 - [fzf](https://github.com/junegunn/fzf)
 - [direnv](https://direnv.net)
+- [btop](https://github.com/aristocratos/btop)
+- [htop](https://htop.dev)
 - [tig](https://jonas.github.io/tig)
 - [valgrind](https://valgrind.org)
-- [OpenSSL](https://openssl-library.org)
-- [curl](https://curl.se)
-- [Git](https://git-scm.com)
+- [Git](https://git-scm.com) latest release, along with [OpenSSL](https://openssl-library.org) and [curl](https://curl.se) dependencies
 
 ## Usage
 
@@ -29,20 +29,6 @@ environment module.
 Remember to adapt the variable `hpc_tools_home` therein
 if the path `/path/to/hpc_tools` is not `$HOME/hpc_tools`.
 
-To build a self-contained Git stack without relying on the HPC nodes'
-OpenSSL or libcurl, use a modern compiler and run
-
-```shell
-module load compiler/devtoolset/11.2.1
-JOBS=4 bash install.sh git
-export PATH="$PWD/git/bin:$PWD/curl/bin:$PWD/openssl/bin:$PATH"
-```
-
-This builds OpenSSL 3.5.8 LTS, curl 8.21.0, and Git 2.54.0 in that order.
-`tig`, `openssl`, `curl`, `libssl`, and `libcurl` are also accepted as
-individual targets. Dependencies in the Git stack are built automatically;
-building Tig requires the ncurses development headers.
-
 To download and verify the remote archives without extracting or compiling
 them, place `--fetch-only` before the target. For example,
 
@@ -50,10 +36,39 @@ them, place `--fetch-only` before the target. For example,
 bash install.sh --fetch-only git
 ```
 
-## TODO
+## Troubleshooting
 
-- [ ] htop
-- [x] modern git
+### Tig: incompatible libtinfo or missing libtinfo.so symlink
+
+On older CentOS systems, linking Tig may fail with:
+
+```text
+/usr/bin/ld: skipping incompatible /usr/lib/libtinfo.so when searching for -ltinfo
+/usr/bin/ld: cannot find -ltinfo
+```
+
+The linker may find only 32-bit libraries while the 64-bit runtime
+`/lib64/libtinfo.so.5` lacks the `libtinfo.so` symlink needed by `-ltinfo`.
+Adding `-L/lib64` alone does not supply that missing filename.
+
+Check that the runtime matches your build (ELF 64-bit x86-64):
+
+```shell
+file -L /lib64/libtinfo.so.5
+```
+
+If it matches, create a private symlink (skip if already correct) and retry
+from the repository root, without sudo:
+
+```shell
+mkdir -p "$HOME/.local/lib"
+ln -s /lib64/libtinfo.so.5 "$HOME/.local/lib/libtinfo.so"
+LDFLAGS="-L$HOME/.local/lib ${LDFLAGS:-}" bash install.sh tig
+```
+
+For manual builds, pass the same `LDFLAGS` to `make` and `make install`.
+If the runtime or ncurses headers are missing, install matching ncurses
+development files locally or ask your administrator.
 
 ## [License](./LICENSE)
 

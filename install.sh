@@ -66,6 +66,27 @@ fetch_fzf() {
   tar -C fzf -zxf "$fzftgz"
 }
 
+fetch_btop() {
+  if (( ! FETCH_ONLY )) && command -v btop >/dev/null 2>&1; then
+    echo "system btop detected" && return
+  fi
+  if (( ! FETCH_ONLY )) && [[ -x btop/bin/btop ]]; then
+    echo "btop already fetched" && return
+  fi
+
+  local version="1.4.7"
+  local asset="btop-x86_64-unknown-linux-musl.tar.gz"
+  local tarball="btop-$version-x86_64-unknown-linux-musl.tar.gz"
+  local url="https://github.com/aristocratos/btop/releases/download/v$version/$asset"
+  local sha256="5099054dd6a101bd12eb6ff3702a9a6a3f57aaa27923a0da478ae5b517faf335"
+
+  [[ -f "$tarball" ]] || $WGET_CMD -O "$tarball" "$url" || return
+  verify_sha256 "$tarball" "$sha256" || return
+  (( FETCH_ONLY )) && return
+  tar -zxf "$tarball" || return
+  mkdir -p btop/share/btop && mv btop/themes btop/share/btop/
+}
+
 fetch_direnv() {
   # if which direnv > /dev/null 2>&1; then
   #   echo "system direnv detected" && return
@@ -84,6 +105,31 @@ fetch_direnv() {
   fi
   (( FETCH_ONLY )) && return
   mkdir -p direnv && mv $direnvexe direnv/direnv && chmod +x direnv/direnv
+}
+
+fetch_compile_htop() {
+  if (( ! FETCH_ONLY )) && [[ -x htop/bin/htop ]]; then
+    echo "htop already compiled" && return
+  fi
+
+  local version="3.5.3"
+  local srcdir="htop-$version"
+  local tarball="$srcdir.tar.xz"
+  local url="https://github.com/htop-dev/htop/releases/download/$version/$tarball"
+  local sha256="a8b164386494cb85bb255a415a3f5f80afe7a0c4491da5d113b3a0f951087e65"
+  local prefix="$PWD/htop"
+
+  [[ -f "$tarball" ]] || $WGET_CMD "$url" || return
+  verify_sha256 "$tarball" "$sha256" || return
+  (( FETCH_ONLY )) && return
+  [[ -d "$srcdir" ]] || tar -Jxf "$tarball" || return
+
+  (
+    cd "$srcdir" || exit
+    ./configure --prefix="$prefix" &&
+      make -j"$JOBS" &&
+      make install
+  )
 }
 
 fetch_compile_tig() {
@@ -259,7 +305,7 @@ fetch_compile_git() {
 }
 
 install_tools() {
-  fetch_ripgrep && fetch_fd && fetch_fzf && fetch_direnv
+  fetch_ripgrep && fetch_fd && fetch_fzf && fetch_direnv && fetch_btop
 }
 
 install_git_stack() {
@@ -268,10 +314,12 @@ install_git_stack() {
 
 case "${1:-tools}" in
   tools) install_tools ;;
+  btop) fetch_btop ;;
+  htop) fetch_compile_htop ;;
   tig) fetch_compile_tig ;;
   openssl | libssl) fetch_compile_openssl ;;
   curl | libcurl) fetch_compile_openssl && fetch_compile_curl ;;
   git) install_git_stack ;;
-  all) install_tools && install_git_stack && fetch_compile_tig ;;
-  *) echo "Usage: $0 [--fetch-only] [tools|tig|openssl|curl|git|all]" >&2; exit 2 ;;
+  all) install_tools && install_git_stack && fetch_compile_tig && fetch_compile_htop ;;
+  *) echo "Usage: $0 [--fetch-only] [tools|btop|htop|tig|openssl|curl|git|all]" >&2; exit 2 ;;
 esac

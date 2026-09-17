@@ -21,7 +21,7 @@ prebuilt tools, run
 
 ```shell
 cd ~/hpc_tools
-bash install.sh
+bash install.sh tools
 ```
 
 Or run it locally and upload to `/path/to/hpc_tools` at the server.

@@ -4,6 +4,48 @@ WGET_CMD="wget -nv --show-progress --progress=bar:force"
 JOBS="${JOBS:-4}"
 FETCH_ONLY=0
 
+usage() {
+  cat <<EOF
+Usage: bash $0 [--fetch-only] <target>
+       bash $0 --help
+
+Fetch and install HPC tools in the current directory. Run from the
+hpc_tools repository root; no sudo is needed. A target is required.
+
+Options:
+  -h, --help    Show this help and exit.
+  --fetch-only  Download files without extracting or compiling them.
+                Place before the target; applies to its dependencies too.
+                Verify SHA-256 where a checksum is pinned in this script.
+
+Prebuilt targets (Linux x86-64; no compiler needed):
+  ripgrep, rg   Fast text search; installs the rg command.
+  fd            File search.
+  fzf           Interactive fuzzy finder.
+  direnv        Per-directory environment variables.
+  btop          Resource monitor.
+  duf           Disk usage overview.
+
+Source targets (require a compiler, make, and development libraries):
+  htop          Process monitor; requires ncurses development files.
+  tig           Git text interface; requires ncurses development files.
+  openssl       OpenSSL libraries and command (alias: libssl).
+  curl          curl and libcurl; builds OpenSSL first (alias: libcurl).
+  git           Git; builds OpenSSL and curl first.
+
+Groups:
+  tools         All prebuilt targets listed above.
+  all           tools, git (including OpenSSL and curl), tig, and htop.
+
+Downloads use wget and are reused when already present. Existing local
+installations are skipped; most prebuilt targets also skip commands on PATH.
+Source builds use JOBS parallel jobs (default: 4), e.g. JOBS=8 bash $0 git.
+
+Tools are installed under their own subdirectories. To use them, configure
+and load the supplied modulefile, or add their executable directories to PATH.
+EOF
+}
+
 if [[ "${1:-}" == "--fetch-only" ]]; then
   FETCH_ONLY=1
   shift
@@ -331,8 +373,18 @@ install_git_stack() {
   fetch_compile_openssl && fetch_compile_curl && fetch_compile_git
 }
 
-case "${1:-tools}" in
+if (( $# != 1 )); then
+  usage >&2
+  exit 2
+fi
+
+case "$1" in
+  -h | --help) usage ;;
   tools) install_tools ;;
+  ripgrep | rg) fetch_ripgrep ;;
+  fd) fetch_fd ;;
+  fzf) fetch_fzf ;;
+  direnv) fetch_direnv ;;
   btop) fetch_btop ;;
   duf) fetch_duf ;;
   htop) fetch_compile_htop ;;
@@ -341,5 +393,5 @@ case "${1:-tools}" in
   curl | libcurl) fetch_compile_openssl && fetch_compile_curl ;;
   git) install_git_stack ;;
   all) install_tools && install_git_stack && fetch_compile_tig && fetch_compile_htop ;;
-  *) echo "Usage: $0 [--fetch-only] [tools|btop|duf|htop|tig|openssl|curl|git|all]" >&2; exit 2 ;;
+  *) echo "Unknown target: $1" >&2; usage >&2; exit 2 ;;
 esac

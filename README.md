@@ -5,6 +5,7 @@ Tools very useful but maybe missing on HPC platform.
 - [fzf](https://github.com/junegunn/fzf)
 - [direnv](https://direnv.net)
 - [btop](https://github.com/aristocratos/btop)
+- [duf](https://github.com/muesli/duf)
 - [htop](https://htop.dev)
 - [tig](https://jonas.github.io/tig)
 - [valgrind](https://valgrind.org)

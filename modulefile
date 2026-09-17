@@ -7,6 +7,7 @@ prepend-path PATH  "$hpc_tools_home/ripgrep"
 prepend-path PATH  "$hpc_tools_home/fzf"
 prepend-path PATH  "$hpc_tools_home/direnv"
 prepend-path PATH  "$hpc_tools_home/btop/bin"
+prepend-path PATH  "$hpc_tools_home/duf"
 
 # ==================================
 # Below are for manually built tools, comment if necessary

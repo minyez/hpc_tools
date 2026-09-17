@@ -87,6 +87,25 @@ fetch_btop() {
   mkdir -p btop/share/btop && mv btop/themes btop/share/btop/
 }
 
+fetch_duf() {
+  if (( ! FETCH_ONLY )) && command -v duf >/dev/null 2>&1; then
+    echo "system duf detected" && return
+  fi
+  if (( ! FETCH_ONLY )) && [[ -x duf/duf ]]; then
+    echo "duf already fetched" && return
+  fi
+
+  local version="0.9.1"
+  local tarball="duf_${version}_linux_x86_64.tar.gz"
+  local url="https://github.com/muesli/duf/releases/download/v$version/$tarball"
+  local sha256="5add851e7062c5e56939abb664705e4d14fa2d06289490aff31d51f153832de7"
+
+  [[ -f "$tarball" ]] || $WGET_CMD "$url" || return
+  verify_sha256 "$tarball" "$sha256" || return
+  (( FETCH_ONLY )) && return
+  mkdir -p duf && tar -C duf -zxf "$tarball"
+}
+
 fetch_direnv() {
   # if which direnv > /dev/null 2>&1; then
   #   echo "system direnv detected" && return
@@ -305,7 +324,7 @@ fetch_compile_git() {
 }
 
 install_tools() {
-  fetch_ripgrep && fetch_fd && fetch_fzf && fetch_direnv && fetch_btop
+  fetch_ripgrep && fetch_fd && fetch_fzf && fetch_direnv && fetch_btop && fetch_duf
 }
 
 install_git_stack() {
@@ -315,11 +334,12 @@ install_git_stack() {
 case "${1:-tools}" in
   tools) install_tools ;;
   btop) fetch_btop ;;
+  duf) fetch_duf ;;
   htop) fetch_compile_htop ;;
   tig) fetch_compile_tig ;;
   openssl | libssl) fetch_compile_openssl ;;
   curl | libcurl) fetch_compile_openssl && fetch_compile_curl ;;
   git) install_git_stack ;;
   all) install_tools && install_git_stack && fetch_compile_tig && fetch_compile_htop ;;
-  *) echo "Usage: $0 [--fetch-only] [tools|btop|htop|tig|openssl|curl|git|all]" >&2; exit 2 ;;
+  *) echo "Usage: $0 [--fetch-only] [tools|btop|duf|htop|tig|openssl|curl|git|all]" >&2; exit 2 ;;
 esac

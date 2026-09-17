@@ -3,6 +3,7 @@
 
 # the fetched tools
 btop/
+duf/
 ripgrep/
 fd/
 fzf/

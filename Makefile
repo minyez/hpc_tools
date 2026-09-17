@@ -1,4 +1,4 @@
 .PHONY: veryclean
 
 veryclean:
-	rm -rf btop direnv fd fzf htop ripgrep tig
+	rm -rf btop direnv duf fd fzf htop ripgrep tig

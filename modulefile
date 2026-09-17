@@ -9,6 +9,10 @@ prepend-path PATH  "$hpc_tools_home/direnv"
 prepend-path PATH  "$hpc_tools_home/btop/bin"
 prepend-path PATH  "$hpc_tools_home/duf"
 
+prepend-path MANPATH "$hpc_tools_home/fd/share/man"
+prepend-path MANPATH "$hpc_tools_home/ripgrep/share/man"
+prepend-path MANPATH "$hpc_tools_home/duf/share/man"
+
 # ==================================
 # Below are for manually built tools, comment if necessary
 # git

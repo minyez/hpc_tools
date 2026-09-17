@@ -83,7 +83,8 @@ fetch_ripgrep() {
 
   [[ -f "$ripgreptgz" ]] || $WGET_CMD "$ripgrepurl" || return
   (( FETCH_ONLY )) && return
-  mkdir -p ripgrep && tar -C ripgrep --strip-components=1 -zxf "$ripgreptgz"
+  mkdir -p ripgrep && tar -C ripgrep --strip-components=1 -zxf "$ripgreptgz" || return
+  mkdir -p ripgrep/share/man/man1 && ln -sfn ../../../doc/rg.1 ripgrep/share/man/man1/rg.1
 }
 
 fetch_fd() {
@@ -100,7 +101,8 @@ fetch_fd() {
 
   [[ -f "$fdtgz" ]] || $WGET_CMD "$fdurl" || return
   (( FETCH_ONLY )) && return
-  mkdir -p fd && tar -C fd --strip-components=1 -zxf "$fdtgz"
+  mkdir -p fd && tar -C fd --strip-components=1 -zxf "$fdtgz" || return
+  mkdir -p fd/share/man/man1 && ln -sfn ../../../fd.1 fd/share/man/man1/fd.1
 }
 
 fetch_fzf() {
@@ -158,7 +160,8 @@ fetch_duf() {
   [[ -f "$tarball" ]] || $WGET_CMD "$url" || return
   verify_sha256 "$tarball" "$sha256" || return
   (( FETCH_ONLY )) && return
-  mkdir -p duf && tar -C duf -zxf "$tarball"
+  mkdir -p duf && tar -C duf -zxf "$tarball" || return
+  mkdir -p duf/share/man/man1 && ln -sfn ../../../duf.1 duf/share/man/man1/duf.1
 }
 
 fetch_direnv() {

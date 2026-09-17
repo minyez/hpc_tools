@@ -71,6 +71,33 @@ For manual builds, pass the same `LDFLAGS` to `make` and `make install`.
 If the runtime or ncurses headers are missing, install matching ncurses
 development files locally or ask your administrator.
 
+### htop: configure cannot find curses/ncurses
+
+htop's configure step may report:
+
+```text
+configure: error: cannot find required curses/ncurses library
+```
+
+The root cause can be similar to Tig's libtinfo issue above: compatible
+runtime libraries exist, but the development files needed to link a 64-bit
+build are missing. For example, `ncurses-devel.i686` may be installed alongside
+`ncurses-libs.x86_64`, while `ncurses-devel.x86_64` is missing. Check
+`rpm -qa '*ncurses*'` and the linker errors in `config.log`; the configure
+message alone does not identify the cause. An administrator can install the
+matching package with `sudo yum install ncurses-devel.x86_64`.
+
+For a no-root workaround, if matching headers and the 64-bit libraries
+below are present, link to their versioned filenames directly:
+
+```shell
+file -L /usr/lib64/libncursesw.so.5 /usr/lib64/libtinfo.so.5
+CURSES_CFLAGS="" CURSES_LIBS="-l:libncursesw.so.5 -l:libtinfo.so.5" \
+  bash install.sh htop
+```
+
+These flags retain Unicode support. Run the command from the repository root.
+
 ## [License](./LICENSE)
 
 The MIT License (MIT).

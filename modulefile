@@ -20,7 +20,8 @@ prepend-path PATH  "$hpc_tools_home/git/bin"
 # tig
 prepend-path PATH  "$hpc_tools_home/tig/bin"
 # htop
-prepend-path PATH  "$hpc_tools_home/htop/bin"
+prepend-path PATH    "$hpc_tools_home/htop/bin"
+prepend-path MANPATH "$hpc_tools_home/htop/share/man"
 # Valgrind
 prepend-path PATH            "$hpc_tools_home/valgrind/bin"
 prepend-path CPATH           "$hpc_tools_home/valgrind/include"

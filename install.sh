@@ -3,10 +3,11 @@
 WGET_CMD="wget -nv --show-progress --progress=bar:force"
 JOBS="${JOBS:-4}"
 FETCH_ONLY=0
+FORCE=0
 
 usage() {
   cat <<EOF
-Usage: bash $0 [--fetch-only] <target>
+Usage: bash $0 [--fetch-only] [--force] <target>
        bash $0 --help
 
 Fetch and install HPC tools in the current directory. Run from the
@@ -15,8 +16,13 @@ hpc_tools repository root; no sudo is needed. A target is required.
 Options:
   -h, --help    Show this help and exit.
   --fetch-only  Download files without extracting or compiling them.
-                Place before the target; applies to its dependencies too.
                 Verify SHA-256 where a checksum is pinned in this script.
+  --force       Install even if a command is on PATH or already installed here.
+                Re-extract prebuilt tools and rebuild source targets.
+                Cached downloads are still reused; pinned versions are unchanged.
+
+Place options before the target, in either order. Both apply to dependencies.
+With --fetch-only, --force still leaves files unextracted and unbuilt.
 
 Prebuilt targets (Linux x86-64; no compiler needed):
   ripgrep, rg   Fast text search; installs the rg command.
@@ -38,7 +44,8 @@ Groups:
   all           tools, git (including OpenSSL and curl), tig, and htop.
 
 Downloads use wget and are reused when already present. Existing local
-installations are skipped; most prebuilt targets also skip commands on PATH.
+installations are skipped unless forced; most prebuilt targets also skip
+commands on PATH.
 Source builds use JOBS parallel jobs (default: 4), e.g. JOBS=8 bash $0 git.
 
 Tools are installed under their own subdirectories. To use them, configure
@@ -46,20 +53,27 @@ and load the supplied modulefile, or add their executable directories to PATH.
 EOF
 }
 
-if [[ "${1:-}" == "--fetch-only" ]]; then
-  FETCH_ONLY=1
+while (( $# )); do
+  case "$1" in
+    --fetch-only) FETCH_ONLY=1 ;;
+    --force) FORCE=1 ;;
+    -h | --help) usage; exit 0 ;;
+    --) shift; break ;;
+    -*) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
+    *) break ;;
+  esac
   shift
-fi
+done
 
 verify_sha256() {
   printf '%s  %s\n' "$2" "$1" | sha256sum -c -
 }
 
 fetch_ripgrep() {
-  if (( ! FETCH_ONLY )) && which rg >/dev/null 2>&1; then
+  if (( ! FETCH_ONLY && ! FORCE )) && which rg >/dev/null 2>&1; then
     echo "system ripgrep detected" && return
   fi
-  if (( ! FETCH_ONLY )) && [[ -d ripgrep ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -d ripgrep ]]; then
     echo "ripgrep already fetched" && return
   fi
   ripgrepver="15.1.0"
@@ -69,15 +83,14 @@ fetch_ripgrep() {
 
   [[ -f "$ripgreptgz" ]] || $WGET_CMD "$ripgrepurl" || return
   (( FETCH_ONLY )) && return
-  tar -zxf "$ripgreptgz"
-  mv "$ripgrepdir" ripgrep
+  mkdir -p ripgrep && tar -C ripgrep --strip-components=1 -zxf "$ripgreptgz"
 }
 
 fetch_fd() {
-  if (( ! FETCH_ONLY )) && which fd >/dev/null 2>&1; then
+  if (( ! FETCH_ONLY && ! FORCE )) && which fd >/dev/null 2>&1; then
     echo "system fd detected" && return
   fi
-  if (( ! FETCH_ONLY )) && [[ -d fd ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -d fd ]]; then
     echo "fd already fetched" && return
   fi
   fdver="v10.4.2"
@@ -87,15 +100,14 @@ fetch_fd() {
 
   [[ -f "$fdtgz" ]] || $WGET_CMD "$fdurl" || return
   (( FETCH_ONLY )) && return
-  tar -zxf "$fdtgz"
-  mv "$fddir" fd
+  mkdir -p fd && tar -C fd --strip-components=1 -zxf "$fdtgz"
 }
 
 fetch_fzf() {
-  if (( ! FETCH_ONLY )) && which fzf >/dev/null 2>&1; then
+  if (( ! FETCH_ONLY && ! FORCE )) && which fzf >/dev/null 2>&1; then
     echo "system fzf detected" && return
   fi
-  if (( ! FETCH_ONLY )) && [[ -d fzf ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -d fzf ]]; then
     echo "fzf already fetched" && return
   fi
   fzfver="0.41.1"
@@ -109,10 +121,10 @@ fetch_fzf() {
 }
 
 fetch_btop() {
-  if (( ! FETCH_ONLY )) && command -v btop >/dev/null 2>&1; then
+  if (( ! FETCH_ONLY && ! FORCE )) && command -v btop >/dev/null 2>&1; then
     echo "system btop detected" && return
   fi
-  if (( ! FETCH_ONLY )) && [[ -x btop/bin/btop ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -x btop/bin/btop ]]; then
     echo "btop already fetched" && return
   fi
 
@@ -126,14 +138,15 @@ fetch_btop() {
   verify_sha256 "$tarball" "$sha256" || return
   (( FETCH_ONLY )) && return
   tar -zxf "$tarball" || return
-  mkdir -p btop/share/btop && mv btop/themes btop/share/btop/
+  mkdir -p btop/share/btop/themes &&
+    cp -R btop/themes/. btop/share/btop/themes/ && rm -rf btop/themes
 }
 
 fetch_duf() {
-  if (( ! FETCH_ONLY )) && command -v duf >/dev/null 2>&1; then
+  if (( ! FETCH_ONLY && ! FORCE )) && command -v duf >/dev/null 2>&1; then
     echo "system duf detected" && return
   fi
-  if (( ! FETCH_ONLY )) && [[ -x duf/duf ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -x duf/duf ]]; then
     echo "duf already fetched" && return
   fi
 
@@ -152,7 +165,7 @@ fetch_direnv() {
   # if which direnv > /dev/null 2>&1; then
   #   echo "system direnv detected" && return
   # fi
-  if (( ! FETCH_ONLY )) && [[ -d direnv ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -d direnv ]]; then
     echo "direnv already fetched" && return
   fi
   direnvver="v2.37.1"
@@ -169,7 +182,7 @@ fetch_direnv() {
 }
 
 fetch_compile_htop() {
-  if (( ! FETCH_ONLY )) && [[ -x htop/bin/htop ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -x htop/bin/htop ]]; then
     echo "htop already compiled" && return
   fi
 
@@ -188,13 +201,14 @@ fetch_compile_htop() {
   (
     cd "$srcdir" || exit
     ./configure --prefix="$prefix" &&
+      { (( ! FORCE )) || make clean; } &&
       make -j"$JOBS" &&
       make install
   )
 }
 
 fetch_compile_tig() {
-  if (( ! FETCH_ONLY )) && [[ -x tig/bin/tig ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -x tig/bin/tig ]]; then
     echo "tig already compiled" && return
   fi
 
@@ -213,6 +227,7 @@ fetch_compile_tig() {
   (
     cd "$srcdir" || exit
     ./configure --prefix="$prefix" &&
+      { (( ! FORCE )) || make clean; } &&
       make -j"$JOBS" &&
       make install
   )
@@ -220,7 +235,7 @@ fetch_compile_tig() {
 
 # See: https://valgrind.org/docs/manual/dist.readme.html
 fetch_compile_valgrind() {
-  if (( ! FETCH_ONLY )) && [[ -d valgrind ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -d valgrind ]]; then
     echo "valgrind already fetched" && return
   fi
   vver="3.24.0"
@@ -233,7 +248,7 @@ fetch_compile_valgrind() {
   fi
   (( FETCH_ONLY )) && return
   [[ -d "valgrind-$vver" ]] || tar -jxf "$vtarball"
-  if [[ ! -d "valgrind" ]]; then
+  if (( FORCE )) || [[ ! -d "valgrind" ]]; then
     prefix="$(pwd)/valgrind"
     cd "valgrind-$vver" || return 2
     make prefix="$prefix" && make install prefix="$prefix" && cd .. && rm -rf "valgrind-$vver"
@@ -241,7 +256,7 @@ fetch_compile_valgrind() {
 }
 
 fetch_compile_openssl() {
-  if (( ! FETCH_ONLY )) && [[ -x openssl/bin/openssl ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -x openssl/bin/openssl ]]; then
     echo "OpenSSL already compiled" && return
   fi
 
@@ -262,13 +277,14 @@ fetch_compile_openssl() {
     unset CPATH C_INCLUDE_PATH CPLUS_INCLUDE_PATH LIBRARY_PATH PKG_CONFIG_PATH
     LDFLAGS="${LDFLAGS:+$LDFLAGS }-Wl,-rpath,$prefix/lib" \
       ./config --prefix="$prefix" --openssldir="$prefix/ssl" --libdir=lib shared &&
+      { (( ! FORCE )) || make clean; } &&
       make -j"$JOBS" &&
       make install_sw
   )
 }
 
 fetch_compile_curl() {
-  if (( ! FETCH_ONLY )) && [[ -x curl/bin/curl ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -x curl/bin/curl ]]; then
     echo "curl already compiled" && return
   fi
   if (( ! FETCH_ONLY )); then
@@ -303,13 +319,14 @@ fetch_compile_curl() {
       --with-openssl="$openssl_prefix" \
       --with-ca-bundle=/etc/pki/tls/certs/ca-bundle.crt \
       --without-libpsl &&
+      { (( ! FORCE )) || make clean; } &&
       make -j"$JOBS" &&
       make install
   )
 }
 
 fetch_compile_git() {
-  if (( ! FETCH_ONLY )) && [[ -x git/bin/git ]]; then
+  if (( ! FETCH_ONLY && ! FORCE )) && [[ -x git/bin/git ]]; then
     echo "Git already compiled" && return
   fi
   if (( ! FETCH_ONLY )); then
@@ -379,7 +396,6 @@ if (( $# != 1 )); then
 fi
 
 case "$1" in
-  -h | --help) usage ;;
   tools) install_tools ;;
   ripgrep | rg) fetch_ripgrep ;;
   fd) fetch_fd ;;
